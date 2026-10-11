@@ -31,7 +31,7 @@ jobs:
 
       - name: Verify official source tree
         run: |
-          $tree = git -C upstream rev-parse 'HEAD^{tree}'
+          $tree = git -C upstream rev-parse HEAD
           if ($LASTEXITCODE -ne 0 -or $tree.Trim() -ne '23feeddc538de4e10646b692b0bb065efe77ccb3') { throw 'Official source tree mismatch' }
 
       - name: Materialize the reviewed patch and build helpers
