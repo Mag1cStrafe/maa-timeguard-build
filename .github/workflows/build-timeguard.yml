@@ -76,7 +76,7 @@ jobs:
       - name: Configure original core build
         working-directory: upstream
         run: |
-          cmake --preset windows-x64 -DBUILD_WPF_GUI=OFF -DBUILD_DEBUG_DEMO=OFF -DBUILD_RESOURCE_UPDATER=OFF -DMAA_HASH_VERSION=v6.18.0-timeguard
+          cmake --preset windows-x64 '-DBUILD_WPF_GUI=OFF' '-DBUILD_DEBUG_DEMO=OFF' '-DBUILD_RESOURCE_UPDATER=OFF' '-DMAA_HASH_VERSION=v6.18.0-timeguard'
           if ($LASTEXITCODE -ne 0) { throw 'Core configuration failed' }
 
       - name: Build Debug MaaCore and check resources without a device
