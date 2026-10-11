@@ -1,0 +1,111 @@
+name: Build MAA time guard (Windows x64)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-timeguard.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maa-timeguard-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Fetch official MAA v6.18.0 source
+        uses: actions/checkout@v7
+        with:
+          repository: MaaAssistantArknights/MaaAssistantArknights
+          ref: v6.18.0
+          path: upstream
+          persist-credentials: false
+
+      - name: Verify official source tree
+        run: |
+          $tree = git -C upstream rev-parse 'HEAD^{tree}'
+          if ($LASTEXITCODE -ne 0 -or $tree.Trim() -ne '23feeddc538de4e10646b692b0bb065efe77ccb3') { throw 'Official source tree mismatch' }
+
+      - name: Materialize the reviewed patch and build helpers
+        run: |
+          python -c "import base64,pathlib; p=pathlib.Path('build_package.py'); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode('IiIiUGFja2FnZSBhIGxvY2FsbHkgYnVpbHQgY29yZSB3aXRoIHRoZSBleGFjdCBvZmZpY2lhbCB2Ni4xOC4wIFdpbmRvd3MgcmVsZWFzZS4iIiIKaW1wb3J0IGN0eXBlcwppbXBvcnQgaGFzaGxpYgppbXBvcnQganNvbgppbXBvcnQgb3MKZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCmltcG9ydCBzaHV0aWwKaW1wb3J0IHN5cwppbXBvcnQgdXJsbGliLnJlcXVlc3QKaW1wb3J0IHppcGZpbGUKClJPT1QgPSBQYXRoKF9fZmlsZV9fKS5yZXNvbHZlKCkucGFyZW50ClNPVVJDRSA9IFJPT1QgLyAidXBzdHJlYW0iClRBRyA9ICJ2Ni4xOC4wIgoKCmRlZiByZXF1ZXN0KHVybCk6CiAgICBoZWFkZXJzID0geyJVc2VyLUFnZW50IjogIm1hYS10aW1lZ3VhcmQtYnVpbGQifQogICAgaWYgdXJsLnN0YXJ0c3dpdGgoImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vIik6CiAgICAgICAgaGVhZGVyc1siQXV0aG9yaXphdGlvbiJdID0gIkJlYXJlciAiICsgb3MuZW52aXJvblsiR0lUSFVCX1RPS0VOIl0KICAgIHJldHVybiB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHVybGxpYi5yZXF1ZXN0LlJlcXVlc3QodXJsLCBoZWFkZXJzPWhlYWRlcnMpLCB0aW1lb3V0PTE4MCkKCgpkZWYgZG93bmxvYWRfb2ZmaWNpYWwoKToKICAgIHdpdGggcmVxdWVzdCgiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9NYWFBc3Npc3RhbnRBcmtuaWdodHMvTWFhQXNzaXN0YW50QXJrbmlnaHRzL3JlbGVhc2VzL3RhZ3MvIiArIFRBRykgYXMgcmVzcG9uc2U6CiAgICAgICAgcmVsZWFzZSA9IGpzb24ubG9hZChyZXNwb25zZSkKICAgIG1hdGNoZXMgPSBbYXNzZXQgZm9yIGFzc2V0IGluIHJlbGVhc2VbImFzc2V0cyJdIGlmIGFzc2V0WyJuYW1lIl0gPT0gIk1BQS12Ni4xOC4wLXdpbi14NjQuemlwIl0KICAgIGlmIGxlbihtYXRjaGVzKSAhPSAxOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigiRXhwZWN0ZWQgZXhhY3RseSBvbmUgb2ZmaWNpYWwgdjYuMTguMCB3aW4teDY0IFpJUCIpCiAgICBhc3NldCA9IG1hdGNoZXNbMF0KICAgIHVybCA9IGFzc2V0WyJicm93c2VyX2Rvd25sb2FkX3VybCJdCiAgICBpZiBub3QgdXJsLnN0YXJ0c3dpdGgoImh0dHBzOi8vZ2l0aHViLmNvbS9NYWFBc3Npc3RhbnRBcmtuaWdodHMvTWFhQXNzaXN0YW50QXJrbmlnaHRzL3JlbGVhc2VzL2Rvd25sb2FkL3Y2LjE4LjAvIik6CiAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKCJVbmV4cGVjdGVkIG9mZmljaWFsIGFzc2V0IFVSTCIpCiAgICBhcmNoaXZlID0gUk9PVCAvICJvZmZpY2lhbC56aXAiCiAgICB3aXRoIHJlcXVlc3QodXJsKSBhcyByZXNwb25zZSwgYXJjaGl2ZS5vcGVuKCJ3YiIpIGFzIG91dHB1dDoKICAgICAgICBzaHV0aWwuY29weWZpbGVvYmoocmVzcG9uc2UsIG91dHB1dCkKICAgIGlmIGFyY2hpdmUuc3RhdCgpLnN0X3NpemUgIT0gYXNzZXRbInNpemUiXToKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoIk9mZmljaWFsIGRvd25sb2FkIHNpemUgbWlzbWF0Y2giKQogICAgc2hhID0gaGFzaGxpYi5zaGEyNTYoYXJjaGl2ZS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpCiAgICBkaWdlc3QgPSBhc3NldC5nZXQoImRpZ2VzdCIpCiAgICBpZiBkaWdlc3QgYW5kIGRpZ2VzdCAhPSAic2hhMjU2OiIgKyBzaGE6CiAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKCJPZmZpY2lhbCBhc3NldCBkaWdlc3QgbWlzbWF0Y2giKQogICAgbWV0YWRhdGEgPSB7InRhZyI6IFRBRywgIm9mZmljaWFsX2Fzc2V0IjogYXNzZXRbIm5hbWUiXSwgIm9mZmljaWFsX3NoYTI1NiI6IHNoYSwKICAgICAgICAgICAgICAgICJnaXRodWJfZGlnZXN0X3ZlcmlmaWVkIjogYm9vbChkaWdlc3QpfQogICAgKFJPT1QgLyAib2ZmaWNpYWxfbWV0YWRhdGEuanNvbiIpLndyaXRlX3RleHQoanNvbi5kdW1wcyhtZXRhZGF0YSwgaW5kZW50PTIpKQogICAgZGVzdGluYXRpb24gPSBST09UIC8gIm9mZmljaWFsIgogICAgZGVzdGluYXRpb24ubWtkaXIoZXhpc3Rfb2s9VHJ1ZSkKICAgIHdpdGggemlwZmlsZS5aaXBGaWxlKGFyY2hpdmUpIGFzIHo6CiAgICAgICAgZm9yIGluZm8gaW4gei5pbmZvbGlzdCgpOgogICAgICAgICAgICBwYXRoID0gKGRlc3RpbmF0aW9uIC8gaW5mby5maWxlbmFtZSkucmVzb2x2ZSgpCiAgICAgICAgICAgIGlmIG5vdCBwYXRoLmlzX3JlbGF0aXZlX3RvKGRlc3RpbmF0aW9uLnJlc29sdmUoKSk6CiAgICAgICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoIlVuc2FmZSBvZmZpY2lhbCBhcmNoaXZlIHBhdGgiKQogICAgICAgIHouZXh0cmFjdGFsbChkZXN0aW5hdGlvbikKICAgIHJldHVybiBkZXN0aW5hdGlvbgoKCmRlZiBjb3JlX2RpcmVjdG9yeShjb25maWd1cmF0aW9uKToKICAgIG1hdGNoZXMgPSBsaXN0KChTT1VSQ0UgLyAiYnVpbGQiKS5nbG9iKCJiaW4vIiArIGNvbmZpZ3VyYXRpb24gKyAiL01hYUNvcmUuZGxsIikpCiAgICBpZiBsZW4obWF0Y2hlcykgIT0gMToKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoIkV4cGVjdGVkIG9uZSBidWlsdCBNYWFDb3JlLmRsbCBmb3IgIiArIGNvbmZpZ3VyYXRpb24pCiAgICByZXR1cm4gbWF0Y2hlc1swXS5wYXJlbnQKCgpkZWYgY2hlY2tfY29yZShjb25maWd1cmF0aW9uKToKICAgIGJpbmFyeV9kaXIgPSBjb3JlX2RpcmVjdG9yeShjb25maWd1cmF0aW9uKQogICAgZGF0YSA9IChiaW5hcnlfZGlyIC8gIk1hYUNvcmUuZGxsIikucmVhZF9ieXRlcygpCiAgICBvZmZzZXQgPSBpbnQuZnJvbV9ieXRlcyhkYXRhWzYwOjY0XSwgImxpdHRsZSIpCiAgICBpZiBkYXRhWzoyXSAhPSBiIk1aIiBvciBkYXRhW29mZnNldDpvZmZzZXQgKyA0XSAhPSBiIlBFXDBcMCIgb3IgZGF0YVtvZmZzZXQgKyA0Om9mZnNldCArIDZdICE9IGIiXHg2NFx4ODYiOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigiQnVpbHQgTWFhQ29yZSBpcyBub3QgV2luZG93cyB4NjQgUEUiKQogICAgIyBPbmx5IHJlc291cmNlLWxvYWRpbmcgQVBJczogbmV2ZXIgY3JlYXRlL2Nvbm5lY3Qvc3RhcnQgYW4gYXNzaXN0YW50IG9yIGRldmljZS4KICAgIHdpdGggb3MuYWRkX2RsbF9kaXJlY3Rvcnkoc3RyKGJpbmFyeV9kaXIpKToKICAgICAgICBjb3JlID0gY3R5cGVzLkNETEwoc3RyKGJpbmFyeV9kaXIgLyAiTWFhQ29yZS5kbGwiKSkKICAgICAgICBjb3JlLkFzc3RHZXRWZXJzaW9uLnJlc3R5cGUgPSBjdHlwZXMuY19jaGFyX3AKICAgICAgICB2ZXJzaW9uID0gY29yZS5Bc3N0R2V0VmVyc2lvbigpLmRlY29kZSgpCiAgICAgICAgaWYgInY2LjE4LjAiIG5vdCBpbiB2ZXJzaW9uOgogICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoIlVuZXhwZWN0ZWQgY29yZSB2ZXJzaW9uICIgKyB2ZXJzaW9uKQogICAgICAgIGlmIGNvbmZpZ3VyYXRpb24gPT0gIkRlYnVnIjoKICAgICAgICAgICAgdXNlcl9kaXIgPSBST09UIC8gInZhbGlkYXRpb25fdXNlcmRhdGEiCiAgICAgICAgICAgIHVzZXJfZGlyLm1rZGlyKGV4aXN0X29rPVRydWUpCiAgICAgICAgICAgIGNvcmUuQXNzdFNldFVzZXJEaXIuYXJndHlwZXMgPSBbY3R5cGVzLmNfY2hhcl9wXQogICAgICAgICAgICBjb3JlLkFzc3RTZXRVc2VyRGlyLnJlc3R5cGUgPSBjdHlwZXMuY19ib29sCiAgICAgICAgICAgIGNvcmUuQXNzdExvYWRSZXNvdXJjZS5hcmd0eXBlcyA9IFtjdHlwZXMuY19jaGFyX3BdCiAgICAgICAgICAgIGNvcmUuQXNzdExvYWRSZXNvdXJjZS5yZXN0eXBlID0gY3R5cGVzLmNfYm9vbAogICAgICAgICAgICBpZiBub3QgY29yZS5Bc3N0U2V0VXNlckRpcihzdHIodXNlcl9kaXIpLmVuY29kZSgpKSBvciBub3QgY29yZS5Bc3N0TG9hZFJlc291cmNlKHN0cihTT1VSQ0UpLmVuY29kZSgpKToKICAgICAgICAgICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigiRGVidWcgcmVzb3VyY2UtbG9hZGluZyBBUEkgZmFpbGVkIikKICAgICAgICBwcmludChjb25maWd1cmF0aW9uLCAiRExMIGxvYWQvdmVyc2lvbiBjaGVjayBwYXNzZWQ6IiwgdmVyc2lvbikKCgpkZWYgcGFja2FnZSgpOgogICAgb2ZmaWNpYWwgPSBST09UIC8gIm9mZmljaWFsIgogICAgY2FuZGlkYXRlcyA9IGxpc3Qob2ZmaWNpYWwucmdsb2IoIk1BQS5leGUiKSkKICAgIGlmIGxlbihjYW5kaWRhdGVzKSAhPSAxOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigiRXhwZWN0ZWQgb25lIG9mZmljaWFsIE1BQS5leGUiKQogICAgb3JpZ2luYWxfcm9vdCA9IGNhbmRpZGF0ZXNbMF0ucGFyZW50CiAgICBwYWNrYWdlX3Jvb3QgPSBST09UIC8gImRpc3QvTUFBLXY2LjE4LjAtd2luLXg2NC10aW1lZ3VhcmQiCiAgICBzaHV0aWwuY29weXRyZWUob3JpZ2luYWxfcm9vdCwgcGFja2FnZV9yb290KQogICAgZGxscyA9IGNvcmVfZGlyZWN0b3J5KCJSZWxXaXRoRGViSW5mbyIpCiAgICBmb3IgbmFtZSBpbiBbIk1hYUNvcmUuZGxsIiwgIk1hYVV0aWxzLmRsbCJdOgogICAgICAgIGlmIG5vdCAoZGxscyAvIG5hbWUpLmlzX2ZpbGUoKToKICAgICAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKCJNaXNzaW5nIGJ1aWx0IGRlcGVuZGVuY3k6ICIgKyBuYW1lKQogICAgICAgIHNodXRpbC5jb3B5ZmlsZShkbGxzIC8gbmFtZSwgcGFja2FnZV9yb290IC8gbmFtZSkKICAgIGZvciBkbGwgaW4gZGxscy5nbG9iKCIqLmRsbCIpOgogICAgICAgIHNodXRpbC5jb3B5ZmlsZShkbGwsIHBhY2thZ2Vfcm9vdCAvIGRsbC5uYW1lKQogICAgbWV0YWRhdGEgPSBqc29uLmxvYWRzKChST09UIC8gIm9mZmljaWFsX21ldGFkYXRhLmpzb24iKS5yZWFkX3RleHQoKSkKICAgIG1ldGFkYXRhLnVwZGF0ZSh7InNvdXJjZV90cmVlIjogIjIzZmVlZGRjNTM4ZGU0ZTEwNjQ2YjY5MmIwYmIwNjVlZmU3N2NjYjMiLAogICAgICAgICAgICAgICAgICAgICAiZ3VhcmQiOiAiQ04gVVRDKzggMDM6NTA6MDAgPD0gdGltZSA8IDA0OjAyOjAwLCBQTlMtQ29tbWVuY2Ugb25seSIsCiAgICAgICAgICAgICAgICAgICAgICJwYXRjaF9zaGEyNTYiOiBoYXNobGliLnNoYTI1NigoUk9PVCAvICJ0aW1lZ3VhcmQucGF0Y2giKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpLAogICAgICAgICAgICAgICAgICAgICAibW9kaWZpZWRfY29yZV9zaGEyNTYiOiBoYXNobGliLnNoYTI1NigocGFja2FnZV9yb290IC8gIk1hYUNvcmUuZGxsIikucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKSwKICAgICAgICAgICAgICAgICAgICAgImRldmljZV9pbnB1dHMiOiAwLCAicmVhbF9nYW1lX3Rlc3QiOiAiTk9UX1JVTiJ9KQogICAgKHBhY2thZ2Vfcm9vdCAvICJ0aW1lZ3VhcmQtYnVpbGQuanNvbiIpLndyaXRlX3RleHQoanNvbi5kdW1wcyhtZXRhZGF0YSwgaW5kZW50PTIpKQogICAgKHBhY2thZ2Vfcm9vdCAvICLml7bpl7TpmZDliLbor7TmmI4udHh0Iikud3JpdGVfdGV4dCgKICAgICAgICAi5pys5YyF5Z+65LqO5a6Y5pa5IE1BQSB2Ni4xOC4w77yM5Y+q5Zyo5peg5a2Y5qGj5qih5byP5byA5paw5qGj5YmN5qOA5p+l5YyX5Lqs5pe26Ze044CCXG4iCiAgICAgICAgIjAzOjUw4oCTMDQ6MDIg5q2j5bi457uT5p2f5b2T5YmN55Sf5oGv5ryU566X5Lu75Yqh77yM5bey5pyJ5LiA6L2u57un57ut5Y6f54mI57uT566X5ZKM5Yig5qGj44CCXG4iCiAgICAgICAgIuivt+ino+WOi+WIsOaWsOebruW9le+8jOWFiOmqjOivgeeVjOmdouWQr+WKqO+8jOWLv+imhuebluWOnyBNQUHjgILlrprml7blkK/liqjku43nlLHljp/niYggTUFBIOiuvue9ruOAglxuIgogICAgICAgICLkupHnq6/nvJbor5Hlkoznprvnur/mo4Dmn6XkuI3nrYnkuo7lrp7mnLrpqozor4HvvJvmsqHmnInov57mjqXmuLjmiI/miJbmiafooYzmuLjmiI/mk43kvZzjgIJcbiIKICAgICAgICAi5ZCO57ut5a6Y5pa55pu05paw5Y+v6IO96KaG55uW5pe26Ze06ZmQ5Yi244CC5Zue5rua5L2/55So5Y6f54mIIE1BQSDnm67lvZXljbPlj6/jgIJcbiIsIGVuY29kaW5nPSJ1dGYtOCIpCiAgICB3aXRoIHppcGZpbGUuWmlwRmlsZShST09UIC8gImRpc3QvTUFBLXY2LjE4LjAtd2luLXg2NC10aW1lZ3VhcmQuemlwIiwgInciLCB6aXBmaWxlLlpJUF9ERUZMQVRFRCkgYXMgejoKICAgICAgICBmb3IgcGF0aCBpbiBzb3J0ZWQocGFja2FnZV9yb290LnJnbG9iKCIqIikpOgogICAgICAgICAgICBpZiBwYXRoLmlzX2ZpbGUoKToKICAgICAgICAgICAgICAgIHoud3JpdGUocGF0aCwgc3RyKHBhdGgucmVsYXRpdmVfdG8ocGFja2FnZV9yb290LnBhcmVudCkpKQogICAgcHJpbnQoIkZ1bGwgcGFja2FnZSBjcmVhdGVkIikKCgppZiBfX25hbWVfXyA9PSAiX19tYWluX18iOgogICAgb3BlcmF0aW9uID0gc3lzLmFyZ3ZbMV0KICAgIGlmIG9wZXJhdGlvbiA9PSAiZG93bmxvYWQiOgogICAgICAgIGRvd25sb2FkX29mZmljaWFsKCkKICAgIGVsaWYgb3BlcmF0aW9uIGluIFsiRGVidWciLCAiUmVsV2l0aERlYkluZm8iXToKICAgICAgICBjaGVja19jb3JlKG9wZXJhdGlvbikKICAgIGVsaWYgb3BlcmF0aW9uID09ICJwYWNrYWdlIjoKICAgICAgICBwYWNrYWdlKCkKICAgIGVsc2U6CiAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKCJVbmtub3duIG9wZXJhdGlvbiIpCg=='))"
+          python -c "import base64,pathlib; p=pathlib.Path('timeguard.patch'); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode('LS0tIGEvc3JjL01hYUNvcmUvVGFzay9Qcm9jZXNzVGFzay5jcHAKKysrIGIvc3JjL01hYUNvcmUvVGFzay9Qcm9jZXNzVGFzay5jcHAKQEAgLTEzLDYgKzEzLDcgQEAKICNpbmNsdWRlICJDb25maWcvVGFza0RhdGEuaCIKICNpbmNsdWRlICJDb250cm9sbGVyL0NvbnRyb2xsZXIuaCIKICNpbmNsdWRlICJTdGF0dXMuaCIKKyNpbmNsdWRlICJUYXNrL1JlY2xhbWF0aW9uL1JlY2xhbWF0aW9uU3RhcnRUaW1lLmgiCiAjaW5jbHVkZSAiVXRpbHMvTG9nZ2VyLmhwcCIKICNpbmNsdWRlICJWaXNpb24vTWlzY2VsbGFuZW91cy9QaXBlbGluZUFuYWx5emVyLmgiCiAKQEAgLTM3OCw2ICszNzksMTMgQEAKICAgICAgICAgcmV0dXJuIE5vZGVTdGF0dXM6OkludGVycnVwdGVkOwogICAgIH0KIAorICAgIC8vIENoZWNrIGV2ZXJ5IG5ldy1zYXZlIGNsaWNrIGFmdGVyIHByZV9kZWxheS4gUmV1c2UgdGhlIG5vcm1hbCBTdG9wIGV4aXQgcGF0aC4KKyAgICBpZiAodGFza19uYW1lID09ICJUYWxlc0BSQUBQTlMtQ29tbWVuY2UiICYmIHJlY2xhbWF0aW9uX3N0YXJ0X3RpbWVfYmxvY2tlZChzdGQ6OmNocm9ubzo6c3lzdGVtX2Nsb2NrOjpub3coKSkpIHsKKyAgICAgICAgTG9nSW5mbworICAgICAgICAgICAgPDwgIlJlY2xhbWF0aW9uIG5vLXNhdmUgdGFzayBmaW5pc2hlZCBiZWZvcmUgbmV3LXNhdmUgY3JlYXRpb246IENOIHNlcnZlciB0aW1lIGlzIGJldHdlZW4gMDM6NTAgYW5kIDA0OjAyIjsKKyAgICAgICAgcmV0dXJuIE5vZGVTdGF0dXM6OkludGVycnVwdGVkOworICAgIH0KKwogICAgIC8vIOagueaNruS7u+WKoeeahCBhY3Rpb24g5omn6KGM5Lu75YqhCiAgICAgaWYgKGF1dG8gcmVzdWx0ID0gcnVuX2FjdGlvbihoaXRzKTsgcmVzdWx0ICE9IE5vZGVTdGF0dXM6OlN1Y2Nlc3MpIHsKICAgICAgICAgcmV0dXJuIHJlc3VsdDsKLS0tIC9kZXYvbnVsbAorKysgYi9zcmMvTWFhQ29yZS9UYXNrL1JlY2xhbWF0aW9uL1JlY2xhbWF0aW9uU3RhcnRUaW1lLmgKQEAgLTAsMCArMSwxNiBAQAorI3ByYWdtYSBvbmNlCisKKyNpbmNsdWRlIDxjaHJvbm8+CisKK25hbWVzcGFjZSBhc3N0Cit7CisvLyBDTiBzZXJ2ZXIgdGltZSAoVVRDKzgpLCBpbmRlcGVuZGVudCBvZiB0aGUgY29tcHV0ZXIncyBsb2NhbCB0aW1lem9uZS4KK2lubGluZSBib29sIHJlY2xhbWF0aW9uX3N0YXJ0X3RpbWVfYmxvY2tlZChzdGQ6OmNocm9ubzo6c3lzdGVtX2Nsb2NrOjp0aW1lX3BvaW50IG5vdykKK3sKKyAgICBjb25zdGV4cHIgbG9uZyBsb25nIFNlY29uZHNQZXJEYXkgPSA4Nic0MDA7CisgICAgY29uc3RleHByIGxvbmcgbG9uZyBVdGNPZmZzZXQgPSA4ICogNjAgKiA2MDsKKyAgICBjb25zdCBhdXRvIHNlY29uZHMgPSBzdGQ6OmNocm9ubzo6ZHVyYXRpb25fY2FzdDxzdGQ6OmNocm9ubzo6c2Vjb25kcz4obm93LnRpbWVfc2luY2VfZXBvY2goKSkuY291bnQoKTsKKyAgICBjb25zdCBhdXRvIHNlcnZlcl9zZWNvbmRzID0gKChzZWNvbmRzICUgU2Vjb25kc1BlckRheSArIFV0Y09mZnNldCkgJSBTZWNvbmRzUGVyRGF5ICsgU2Vjb25kc1BlckRheSkgJSBTZWNvbmRzUGVyRGF5OworICAgIHJldHVybiBzZXJ2ZXJfc2Vjb25kcyA+PSAoMyAqIDYwICsgNTApICogNjAgJiYgc2VydmVyX3NlY29uZHMgPCAoNCAqIDYwICsgMikgKiA2MDsKK30KK30gLy8gbmFtZXNwYWNlIGFzc3QK'))"
+          python -c "import base64,pathlib; p=pathlib.Path('time_window.cpp'); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode('I2luY2x1ZGUgPGNhc3NlcnQ+CiNpbmNsdWRlIDxjaHJvbm8+CiNpbmNsdWRlIDxpb3N0cmVhbT4KCiNpbmNsdWRlICJUYXNrL1JlY2xhbWF0aW9uL1JlY2xhbWF0aW9uU3RhcnRUaW1lLmgiCgppbnQgbWFpbigpCnsKICAgIHVzaW5nIENsb2NrID0gc3RkOjpjaHJvbm86OnN5c3RlbV9jbG9jazsKICAgIGNvbnN0ZXhwciBsb25nIGxvbmcgRGF5ID0gODYnNDAwOwogICAgaW50IGNoZWNrcyA9IDA7CiAgICBmb3IgKGxvbmcgbG9uZyBkYXRlIDogeyAwTEwsIDIwJzczN0xMIH0pIHsKICAgICAgICBmb3IgKGxvbmcgbG9uZyBzZWNvbmQgPSAwOyBzZWNvbmQgPCBEYXk7ICsrc2Vjb25kKSB7CiAgICAgICAgICAgIGNvbnN0IGF1dG8gdXRjID0gQ2xvY2s6OnRpbWVfcG9pbnQoc3RkOjpjaHJvbm86OnNlY29uZHMoZGF0ZSAqIERheSArIHNlY29uZCAtIDggKiA2MCAqIDYwKSk7CiAgICAgICAgICAgIGNvbnN0IGJvb2wgZXhwZWN0ZWQgPSBzZWNvbmQgPj0gMTMnODAwICYmIHNlY29uZCA8IDE0JzUyMDsKICAgICAgICAgICAgYXNzZXJ0KGFzc3Q6OnJlY2xhbWF0aW9uX3N0YXJ0X3RpbWVfYmxvY2tlZCh1dGMpID09IGV4cGVjdGVkKTsKICAgICAgICAgICAgKytjaGVja3M7CiAgICAgICAgfQogICAgfQogICAgc3RkOjpjb3V0IDw8IGNoZWNrcyA8PCAiIHRpbWUtd2luZG93IGNoZWNrcyBwYXNzZWRcbiI7Cn0K'))"
+          python -c "import base64,pathlib; p=pathlib.Path('time-tests/CMakeLists.txt'); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(base64.b64decode('Y21ha2VfbWluaW11bV9yZXF1aXJlZChWRVJTSU9OIDMuMjgpCnByb2plY3QoVGltZUd1YXJkVGVzdHMgTEFOR1VBR0VTIENYWCkKYWRkX2V4ZWN1dGFibGUodGltZV93aW5kb3cgLi4vdGltZV93aW5kb3cuY3BwKQp0YXJnZXRfY29tcGlsZV9mZWF0dXJlcyh0aW1lX3dpbmRvdyBQUklWQVRFIGN4eF9zdGRfMjApCnRhcmdldF9pbmNsdWRlX2RpcmVjdG9yaWVzKHRpbWVfd2luZG93IFBSSVZBVEUgLi4vdXBzdHJlYW0vc3JjL01hYUNvcmUpCg=='))"
+
+      - name: Apply only the time-check patch
+        working-directory: upstream
+        run: |
+          git apply --check ../timeguard.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Patch check failed' }
+          git apply ../timeguard.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Patch application failed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Patch whitespace check failed' }
+
+      - name: Fetch official required submodules
+        working-directory: upstream
+        shell: bash
+        run: bash ./.github/scripts/sync-optional-submodules.sh --init --depth 1 src/MaaUtils 3rdparty/EmulatorExtras
+
+      - name: Fetch official pinned MaaDeps
+        working-directory: upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tools/maadeps-download.py x64-windows
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency download failed' }
+
+      - name: Compile and run Debug boundary tests
+        run: |
+          cmake -S time-tests -B time-tests-build -G 'Visual Studio 18 2026' -A x64
+          if ($LASTEXITCODE -ne 0) { throw 'Time test configuration failed' }
+          cmake --build time-tests-build --config Debug --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Time test compilation failed' }
+          & ./time-tests-build/Debug/time_window.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Time boundary tests failed' }
+
+      - name: Configure original core build
+        working-directory: upstream
+        run: |
+          cmake --preset windows-x64 -DBUILD_WPF_GUI=OFF -DBUILD_DEBUG_DEMO=OFF -DBUILD_RESOURCE_UPDATER=OFF -DMAA_HASH_VERSION=v6.18.0-timeguard
+          if ($LASTEXITCODE -ne 0) { throw 'Core configuration failed' }
+
+      - name: Build Debug MaaCore and check resources without a device
+        run: |
+          cmake --build upstream/build --target MaaCore --config Debug --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Debug core compilation failed' }
+          python build_package.py Debug
+          if ($LASTEXITCODE -ne 0) { throw 'Debug core loading check failed' }
+
+      - name: Build production MaaCore and check DLL loading
+        run: |
+          cmake --build upstream/build --target MaaCore --config RelWithDebInfo --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Production core compilation failed' }
+          python build_package.py RelWithDebInfo
+          if ($LASTEXITCODE -ne 0) { throw 'Production core loading check failed' }
+
+      - name: Download matching official full package and assemble
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python build_package.py download
+          if ($LASTEXITCODE -ne 0) { throw 'Official package download failed' }
+          python build_package.py package
+          if ($LASTEXITCODE -ne 0) { throw 'Full package assembly failed' }
+
+      - name: Upload full runnable package
+        uses: actions/upload-artifact@v7
+        with:
+          name: MAA-v6.18.0-win-x64-timeguard
+          path: dist/MAA-v6.18.0-win-x64-timeguard.zip
+          if-no-files-found: error
+          retention-days: 7
